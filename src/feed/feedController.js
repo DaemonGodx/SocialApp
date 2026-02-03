@@ -1,4 +1,7 @@
 import { getFeedService } from "./FeedService.js";
+import { getOrSetCache } from "../utils/cache.js";
+import { normalizeCursor } from "../utils/validateCursor.js";
+
 
 export const getFeed = async (req, res) => {
   try {
@@ -7,24 +10,26 @@ export const getFeed = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const page = req.query.page ? parseInt(req.query.page) : null;
 
-    // cursor will come as object (createdAt + _id)
-    const cursor = req.query.cursor? {
-          createdAt: req.query.cursor.createdAt,
-          _id: req.query.cursor._id
-        }: null;
+    const cursor = normalizeCursor(req.query.cursor);
 
-    const { feed, hasMore, nextCursor } = await getFeedService({
-      userId,
-      limit,
-      page,
-      cursor
-    });
+
+    const cacheKey = `feed:user:${userId}:page:${page || "none"}:cursor:${
+      cursor ? cursor.createdAt + "_" + cursor._id : "start"
+    }:limit:${limit}`;
+
+    const result = await getOrSetCache(cacheKey, async () => {
+      return await getFeedService({
+        userId,
+        limit,
+        page,
+        cursor,
+      });
+    }, 120); // 60 seconds TTL (we can tune later)
 
     return res.status(200).json({
-      hasMore,
-      nextCursor,
-      data: feed,
-     
+      hasMore: result.hasMore,
+      nextCursor: result.nextCursor,
+      data: result.feed,
     });
 
   } catch (err) {
@@ -32,7 +37,7 @@ export const getFeed = async (req, res) => {
 
     return res.status(500).json({
       data: [],
-      message: "Internal server error"
+      message: "Internal server error",
     });
   }
 };

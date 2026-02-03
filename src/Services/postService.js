@@ -1,10 +1,16 @@
 import PostRepo from "../repository/postRepo.js";
+import { invalidateFeedForUserAndFollowers } from "../utils/ivalidateCach.js";
+
+
+
 const postRepo = new PostRepo();
 
 class PostService {
   async create({ content, user,image }) {
     try {
-      return await postRepo.create({ content, user,image });
+      const post= await postRepo.create({ content, user,image });
+      await invalidateFeedForUserAndFollowers(post.user._id);
+      return post;
     } catch (err) {
       console.log("Service Layer Error (createPost):", err);
       throw err;
@@ -49,12 +55,16 @@ class PostService {
 
   async delete({ postId, userId }) {
     try {
-      return await postRepo.delete({ postId, userId });
+      const post =await postRepo.delete({ postId, userId });
+      await invalidateFeedForUserAndFollowers(userId);
+      return post;
     } catch (err) {
       console.log("Service Layer Error (deletePost):", err);
       throw err;
     }
   }
 }
+
+
 
 export default PostService;

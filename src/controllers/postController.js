@@ -170,7 +170,7 @@ export const deletePost = async (req, res) => {
       postId: id,
       userId: req.user.user._id,
     });
-
+   
     if (!deleted) {
       return res.status(404).json({
         success: false,
