@@ -20,18 +20,18 @@ class PostService {
     }
   }
 
-  async getByUser({ userId, page, limit }) {
+  async getByUser({ userId,currentUserId, page, limit,cursor }) {
     try {
-      return await postRepo.getByUser({ userId, page, limit });
+      return await postRepo.getByUser({ userId,currentUserId, page, limit,cursor });
     } catch (err) {
       console.log("Service Layer Error (getByUser):", err);
       throw err;
     }
   }
 
-  async getById({ postId }) {
+  async getById({ postId, currentUserId}) {
     try {
-      return await postRepo.getById({ postId });
+      return await postRepo.getById({ postId,currentUserId });
     } catch (err) {
       console.log("Service Layer Error (getById):", err);
       throw err;

@@ -82,9 +82,9 @@ export const getAllPosts = async (req, res) => {
 export const getPostsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { page, limit } = req.query;
-
-    const posts = await postService.getByUser({ userId, page, limit });
+    const { page, limit,cursor } = req.query;
+    const currentUserId = req.user.user._id;
+    const posts = await postService.getByUser({ userId,currentUserId, page, limit,cursor });
 
     return res.status(200).json({
       success: true,
@@ -104,8 +104,10 @@ export const getPostsByUser = async (req, res) => {
 export const getPostById = async (req, res) => {
   try {
     const { id } = req.params;
+    const currentUserId = req.user.user._id;
 
-    const post = await postService.getById({ postId: id });
+
+    const post = await postService.getById({ postId: id,currentUserId });
 
     if (!post) {
       return res.status(404).json({

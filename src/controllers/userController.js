@@ -66,9 +66,9 @@ export const login = async (req, res) => {
     }
 
 }
-export const getuser = async (req, res) => {
+export const getCurrentuser = async (req, res) => {
     try {
-        const user = await UserService.getUser(req.user.user);
+        const user = await UserService.getCurrentUser(req.user.user);
         return res.status(200).json({
             data: user,
             error: {},
@@ -138,4 +138,33 @@ export const update = async (req, res) => {
     }
 
 }
+export const getProfileDetails = async (req, res) => {
+    try {
+    const { id } = req.params;
+    const currentUserId = req.user.user._id;
+    const user = await UserService.getProfileDetails({
+      profileuserId: id,
+      currentUserId,
+    });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "User fetched successfully",
+      user,
+    });
+  } catch (err) {
+    console.log("Controller Error (getProfileDetails):", err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
 

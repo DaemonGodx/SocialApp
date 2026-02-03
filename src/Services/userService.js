@@ -8,7 +8,6 @@ class userService{
     {
         try{
         if (!data.password) throw new Error("Password is required");
-        data.password=await bcrypt.hash(data.password,10)
         const user =await userRepo.create(data)
         return user
         }
@@ -49,9 +48,9 @@ class userService{
             throw err;
         }
     }       
-    async getUser(data){
+    async getCurrentUser(data){
     try{
-        const user=await userRepo.get(data);
+        const user=await userRepo.getCurrentuser(data);
         return user;
     }
     catch(err){
@@ -73,6 +72,16 @@ class userService{
 }
 getbyid(id){
     return userRepo.getById(id)
+}
+async getProfileDetails({ profileuserId, currentUserId }) {
+    try{
+        return await userRepo.getProfileDetails({ profileuserId, currentUserId });
+    }
+    catch(err)
+    {
+        console.log("Service Layer Error (getProfileDetails):", err);
+        throw err;
+    }
 }
 }
 export default userService

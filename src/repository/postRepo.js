@@ -1,7 +1,10 @@
 import Post from "../models/postSchema.js";
+import mongoose from "mongoose";
+import { buildPostAggregation } from "../aggrigations/postAggregator.js";
+
 
 class PostRepo {
-  async create({ content, user, image}) {
+  async create({ content, user, image }) {
     try {
       const post = await Post.create({
         content,
@@ -38,37 +41,100 @@ class PostRepo {
     }
   }
 
-  async getByUser({ userId, page = 1, limit = 10 }) {
+  async getByUser({
+    userId,
+    currentUserId,
+    page,
+    limit = 10,
+    cursor
+  }) {
     try {
-      page = Math.max(parseInt(page), 1);
       limit = Math.min(Math.max(parseInt(limit), 1), 50);
-      const skip = (page - 1) * limit;
 
-      const posts = await Post.find({ user: userId, isDeleted: false })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
+      const match = {
+        user: new mongoose.Types.ObjectId(userId)
+      };
 
-      return posts;
+      // 🔥 Cursor filter (ONLY createdAt – profile is single-user)
+      if (cursor) {
+        match.createdAt = { $lt: new Date(cursor) };
+      }
+
+      const pipeline = buildPostAggregation({
+        match,
+        currentUserId
+      });
+
+      let posts = [];
+      let hasMore = false;
+      let nextCursor = null;
+
+      // CURSOR PAGINATION
+      if (cursor || !page) {
+        pipeline.push({ $limit: limit + 1 });
+
+        const result = await Post.aggregate(pipeline);
+
+        hasMore = result.length > limit;
+        posts = hasMore ? result.slice(0, limit) : result;
+
+        nextCursor = hasMore
+          ? posts[posts.length - 1].createdAt
+          : null;
+      }
+
+      //  NORMAL PAGE PAGINATION
+
+      else {
+        page = Math.max(parseInt(page), 1);
+        const skip = (page - 1) * limit;
+
+        pipeline.push(
+          { $skip: skip },
+          { $limit: limit }
+        );
+
+        posts = await Post.aggregate(pipeline);
+
+        // lightweight hasMore (no total count)
+        hasMore = posts.length === limit;
+      }
+
+      return {
+
+        hasMore,
+        nextCursor,
+        page: page || null,
+        posts
+      };
+
     } catch (err) {
       console.log("Repository Layer Error (getByUser):", err);
       throw err;
     }
   }
 
-  async getById({ postId }) {
-    try {
-      const post = await Post.findOne({ _id: postId, isDeleted: false })
-        .populate("user", "name username profilePicUrl")
-        .lean();
 
-      return post;
+  async getById({ postId, currentUserId }) {
+    try {
+      const pipeline = buildPostAggregation({
+        match: {
+          _id: new mongoose.Types.ObjectId(postId)
+        },
+        currentUserId
+      });
+
+      const result = await Post.aggregate(pipeline);
+
+      // aggregation always returns array
+      return result[0] || null;
+
     } catch (err) {
       console.log("Repository Layer Error (getById):", err);
       throw err;
     }
   }
+
 
   async update({ postId, userId, content, media }) {
     try {

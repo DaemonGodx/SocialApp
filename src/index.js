@@ -8,6 +8,7 @@ import listEndpoints from "express-list-endpoints";
 
 
 const app=express()
+app.set("query parser", "extended");
 app.use(cookieParser())
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
