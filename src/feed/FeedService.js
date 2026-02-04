@@ -2,6 +2,7 @@ import Post from "../models/postSchema.js";
 import Follow from "../models/followSchema.js";
 import mongoose from "mongoose";
 import { buildPostAggregation } from "../aggrigations/postAggregator.js";
+import { redis } from "../config/redisConfig.js"; // <-- YOUR redis client
 
 function isValidCursor(c) {
   if (!c) return false;
@@ -10,6 +11,20 @@ function isValidCursor(c) {
 
   const d = new Date(c.createdAt);
   return !isNaN(d.getTime());
+}
+
+/**
+ * Attach real-time likesCount from Redis
+ * (Mongo still decides isLiked)
+ */
+async function attachRedisLikes(feed) {
+  for (let post of feed) {
+    const meta = await redis.hgetall(`post:meta:${post._id}`);
+
+    if (meta && meta.likes !== undefined) {
+      post.likesCount = Number(meta.likes);
+    }
+  }
 }
 
 export const getFeedService = async ({
@@ -64,6 +79,7 @@ export const getFeedService = async ({
     let hasMore = false;
     let nextCursor = null;
 
+    // ======== CURSOR BASED FLOW ========
     if (cursor || !page) {
       pipeline.push({ $limit: limit + 1 });
 
@@ -78,7 +94,12 @@ export const getFeedService = async ({
             _id: feed[feed.length - 1]._id
           }
         : null;
-    } 
+
+      // ✅ Align likesCount with Redis
+      await attachRedisLikes(feed);
+    }
+
+    // ======== PAGE BASED FLOW ========
     else {
       page = Math.max(parseInt(page), 1);
       const skip = (page - 1) * limit;
@@ -89,6 +110,9 @@ export const getFeedService = async ({
       );
 
       feed = await Post.aggregate(pipeline);
+
+      // ✅ Align likesCount with Redis
+      await attachRedisLikes(feed);
 
       const totalCount = await Post.countDocuments({
         ...match,

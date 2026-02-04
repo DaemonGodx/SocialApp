@@ -24,7 +24,7 @@ export const getFeed = async (req, res) => {
         page,
         cursor,
       });
-    }, 120); // 60 seconds TTL (we can tune later)
+    }, 2*60); // 60 seconds TTL (we can tune later)
 
     return res.status(200).json({
       hasMore: result.hasMore,

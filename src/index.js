@@ -4,6 +4,7 @@ import connect from "./connections/index.js"
 import route from "./Routes/index.js"
 import cookieParser from "cookie-parser"
 import listEndpoints from "express-list-endpoints";
+import { startLikeReconciliationJob } from "./jobs/reconcileLikes.js";
 
 
 
@@ -16,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 
 
 connect(config.url)
+startLikeReconciliationJob();
 app.use("/api",route)
 console.log(listEndpoints(app));
 
