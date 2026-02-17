@@ -7,7 +7,7 @@ const likeService = new LikeService();
 export const toggleLike = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { isLiked,ownerId} = req.body;   // <-- comes from your feed UI
+    const { isLiked,ownerId} = req.body;   // <-- comes from  feed UI
     const userId = req.user.user._id;
 
     const metaKey = `post:meta:${postId}`;

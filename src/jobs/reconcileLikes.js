@@ -13,7 +13,7 @@ export function startLikeReconciliationJob() {
   console.log("Reconciliation job scheduled (every 2 hours)");
 
  cron.schedule("0 */2 * * *", async () => {
-  console.log("🔄 Starting like reconciliation job...");
+  console.log(" Starting like reconciliation job...");
 
   try {
     const keys = await redis.keys("post:meta:*");
@@ -33,13 +33,13 @@ export function startLikeReconciliationJob() {
         updatedAt: String(Date.now())
       });
 
-      console.log(`✅ Reconciled post ${postId} → ${realLikes} likes`);
+      console.log(` Reconciled post ${postId} → ${realLikes} likes`);
     }
     
 
-    console.log("🎯 Like reconciliation completed.");
+    console.log("Like reconciliation completed.");
   } catch (err) {
-    console.error("❌ Reconciliation failed:", err);
+    console.error("Reconciliation failed:", err);
   }
 });
 }
