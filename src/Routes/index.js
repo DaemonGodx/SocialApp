@@ -17,5 +17,11 @@ route.use("/follow",followRouter)
 route.use("/like",likeRouter)
 route.use("/comment",commentRouter)
 route.use("/feed",feedRouter)
+route.get("/test",(req,res)=>{
+    return res.json({
+        data:"All good"
+
+    })
+})
 
 export default route

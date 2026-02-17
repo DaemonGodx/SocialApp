@@ -4,13 +4,13 @@ import Post from "../models/postSchema.js";
 import { redis } from "../config/redisConfig.js";
 
 /**
- * Runs every 6 hours:
+ * Runs every 2 hours:
  * 1) Count real likes from Like collection (truth)
  * 2) Fix Post.likesCount in Mongo
  * 3) Fix Redis counter
  */
 export function startLikeReconciliationJob() {
-  console.log("Reconciliation job scheduled (every 6 hours)");
+  console.log("Reconciliation job scheduled (every 2 hours)");
 
  cron.schedule("0 */2 * * *", async () => {
   console.log("🔄 Starting like reconciliation job...");

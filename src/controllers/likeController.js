@@ -1,12 +1,13 @@
 import LikeService from "../Services/likeService.js";
 import { likeQueue } from "../queues/likeQueue.js";
 import {redis} from "../config/redisConfig.js";
+import { notificationQueue } from "../queues/notificationQueue.js";
 
 const likeService = new LikeService();
 export const toggleLike = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { isLiked } = req.body;   // <-- comes from your feed UI
+    const { isLiked,ownerId} = req.body;   // <-- comes from your feed UI
     const userId = req.user.user._id;
 
     const metaKey = `post:meta:${postId}`;
@@ -22,7 +23,7 @@ export const toggleLike = async (req, res) => {
     if (isLiked) {
       // User is UNLIKING
       await redis.hincrby(metaKey, "likes", -1);
-      await redis.expire(metaKey, 12*60*60);
+      await redis.expire(metaKey, 2*60*60);
 
 
       await likeQueue.add("like-event", {
@@ -43,7 +44,7 @@ export const toggleLike = async (req, res) => {
     } else {
       // User is LIKING
       await redis.hincrby(metaKey, "likes", 1);
-      await redis.expire(metaKey, 12*60*60);
+      await redis.expire(metaKey, 2*60*60);
       await likeQueue.add("like-event", {
         postId,
         userId,
@@ -60,10 +61,24 @@ export const toggleLike = async (req, res) => {
       removeOnComplete: true,
     removeOnFail: false,
   });
+   await notificationQueue.add(
+    "notify-like",
+    {
+      userId: ownerId,      // receiver (important!)
+      actorId: userId,          // who liked
+      type: "LIKE",
+      entityId: postId
+    },
+    {
+      removeOnComplete: true,
+      jobId: `LIKE:${userId}:${postId}`  // prevent duplicates
+    }
+  );
     }
 
     // Get fresh count from Redis (NO Mongo hit)
     const likesCount = await redis.hget(metaKey, "likes");
+    
 
 
     return res.status(200).json({
@@ -71,6 +86,7 @@ export const toggleLike = async (req, res) => {
       isLiked: !isLiked,            // flip state for frontend
       likesCount: Number(likesCount)
     });
+
 
   } catch (err) {
     console.error("Controller Error (toggleLike):", err);
